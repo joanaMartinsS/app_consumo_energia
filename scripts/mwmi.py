@@ -1,15 +1,43 @@
 import wmi
 import psutil
 import time
+import os
+import ctypes
 
 class MWMI:
 
-    # Inicializa o módulo e testa se o OpenHardwareMonitor está disponível
+    # Inicializa o módulo, abre o OHM se necessário e testa a conexão
     def __init__(self):
+        self.caminhoOhm = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "ferramentas", "openHardwareMonitor", "OpenHardwareMonitor.exe"
+        )
+        self.abrirOhm()
+        time.sleep(3)
         self.conexaoWmi = wmi.WMI(namespace="root\\OpenHardwareMonitor")
         self.usarOhm = self.testarOhm()
 
-    # Testa se o OpenHardwareMonitor está rodando e acessível via WMI
+    # Verifica se o OpenHardwareMonitor já está rodando nos processos do sistema
+    def ohmJaEstaRodando(self):
+        for processo in psutil.process_iter(['name']):
+            if 'OpenHardwareMonitor' in processo.info['name']:
+                return True
+        return False
+
+    # Abre o OpenHardwareMonitor com privilégios de administrador apenas se não estiver rodando
+    def abrirOhm(self):
+        if self.ohmJaEstaRodando():
+            print("OHM já está rodando!")
+            return
+        try:
+            ctypes.windll.shell32.ShellExecuteW(
+                None, "runas", self.caminhoOhm, None, None, 1
+            )
+            print("OHM aberto com sucesso!")
+        except Exception as erro:
+            print(f"Erro ao abrir o OpenHardwareMonitor: {erro}")
+
+    # Testa se o OpenHardwareMonitor está acessível via WMI e retorna True ou False
     def testarOhm(self):
         try:
             sensores = self.conexaoWmi.Sensor()
