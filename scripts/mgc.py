@@ -94,11 +94,12 @@ class MGC:
 
     # Encerra a conexão com o Chromium
     def desconectar(self):
-        if self.navegador:
-            self.navegador.close()
-        if self.playwright:
-            self.playwright.stop()
-        print("Chromium encerrado!")
+        try:
+            if self.playwright:
+                self.playwright.stop()
+            print("Chromium encerrado!")
+        except Exception:
+            print("Chromium encerrado!")
 
 
 if __name__ == "__main__":

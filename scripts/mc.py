@@ -5,6 +5,7 @@ from scripts.mcal import MCal
 from scripts.mgc import MGC
 from scripts.mee import MEE
 from scripts.mah import MAH
+from playwright.sync_api import sync_playwright
 
 class MC:
 
@@ -50,9 +51,15 @@ class MC:
 
     # Loop de coleta contínua executado em segundo plano a cada 5 minutos
     def loopDeColeta(self):
-        while self.emExecucao:
-            self.executarCicloDeColeta()
-            time.sleep(self.intervaloSegundos)
+        # Playwright precisa ser iniciado na mesma thread que vai usá-lo
+        with sync_playwright() as p:
+            navegador = p.chromium.connect_over_cdp(
+                f"http://localhost:{self.mgc.portaDepuracao}"
+            )
+            self.mgc.navegador = navegador
+            while self.emExecucao:
+                self.executarCicloDeColeta()
+                time.sleep(self.intervaloSegundos)
 
     # Inicia o loop de coleta em uma thread separada
     def iniciarColeta(self):
@@ -66,11 +73,9 @@ class MC:
         self.emExecucao = False
         print("Coleta encerrada!")
 
-    # Encerra todos os módulos do sistema
+   # Encerra todos os módulos do sistema
     def encerrar(self):
         self.pararColeta()
-        if self.mgc:
-            self.mgc.desconectar()
         print("Sistema encerrado!")
 
     # Fluxo principal: inicializa, calibra e inicia a coleta contínua
