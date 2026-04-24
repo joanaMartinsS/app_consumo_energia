@@ -82,12 +82,27 @@ class MWMI:
             "watts": watts
         }
 
-
-if __name__ == "__main__":
-    print("Testando MWMI...")
-    modulo = MWMI()
-    print(f"Usando OpenHardwareMonitor: {modulo.usarOhm}")
-    for i in range(5):
-        amostra = modulo.coletarAmostra()
-        print(f"Amostra {i+1}: CPU {amostra['percentualCpu']}% → {amostra['watts']}W")
-        time.sleep(1)
+    # Adiciona a pasta do OHM nas exceções do Windows Defender via PowerShell
+    def adicionarExcecaoDefender(self):
+        pastaOhm = os.path.dirname(self.caminhoOhm)
+        try:
+            subprocess.run(
+                ["powershell", "-Command", 
+                f"Add-MpPreference -ExclusionPath '{pastaOhm}'"],
+                capture_output=True
+            )
+            print("Exceção do Windows Defender adicionada!")
+        except Exception as erro:
+            print(f"Erro ao adicionar exceção: {erro}")
+            
+# Inicializa o módulo, abre o OHM com admin e testa a conexão
+def __init__(self):
+    self.caminhoOhm = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "ferramentas", "openHardwareMonitor", "OpenHardwareMonitor.exe"
+    )
+    self.adicionarExcecaoDefender()
+    self.abrirOhm()
+    time.sleep(3)
+    self.conexaoWmi = wmi.WMI(namespace="root\\OpenHardwareMonitor")
+    self.usarOhm = self.testarOhm()
