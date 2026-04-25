@@ -92,6 +92,12 @@ class MI:
         self.limparAreaPrincipal()
         self.destacarBotao(self.botaoInicio)
 
+        # Se não tiver coeficiente, redireciona pra calibragem
+        if not self.mc.coeficiente:
+            self.mostrarCalibragem()
+            return
+
+
         # Cabeçalho
         tk.Label(self.areaPrincipal, text="Watts por Site", bg="#FFFFFF",
                  font=("Arial", 24, "bold"), anchor="w").pack(padx=30, pady=(30, 5), fill="x")
@@ -215,18 +221,33 @@ class MI:
         self.destacarBotao(self.botaoHistorico)
 
         tk.Label(self.areaPrincipal, text="Seu consumo", bg="#FFFFFF",
-                 font=("Arial", 24, "bold"), anchor="w").pack(padx=30, pady=(30, 10), fill="x")
+                font=("Arial", 24, "bold"), anchor="w").pack(padx=30, pady=(30, 10), fill="x")
 
         # Frame principal dividido em lista e filtro
         frameConteudo = tk.Frame(self.areaPrincipal, bg="#FFFFFF")
         frameConteudo.pack(padx=30, fill="both", expand=True)
 
         # Lista de ranking à esquerda
-        frameLista = tk.Frame(frameConteudo, bg="#FFFFFF")
-        frameLista.pack(side="left", fill="both", expand=True)
+        self.frameListaHistorico = tk.Frame(frameConteudo, bg="#FFFFFF")
+        self.frameListaHistorico.pack(side="left", fill="both", expand=True)
 
-        tk.Label(frameLista, text="Maior consumo semanal", bg="#FFFFFF",
-                 font=("Arial", 14, "bold"), anchor="w").pack(fill="x", pady=(0, 10))
+        tk.Label(self.frameListaHistorico, text="Maior consumo semanal", bg="#FFFFFF",
+                font=("Arial", 14, "bold"), anchor="w").pack(fill="x", pady=(0, 10))
+
+        # Área com scroll para a lista
+        self.canvasHistorico = tk.Canvas(self.frameListaHistorico, bg="#FFFFFF", highlightthickness=0)
+        scrollbarHistorico = ttk.Scrollbar(self.frameListaHistorico, orient="vertical",
+                                            command=self.canvasHistorico.yview)
+        self.frameItensHistorico = tk.Frame(self.canvasHistorico, bg="#FFFFFF")
+
+        self.frameItensHistorico.bind("<Configure>",
+            lambda e: self.canvasHistorico.configure(
+                scrollregion=self.canvasHistorico.bbox("all")))
+        self.canvasHistorico.create_window((0, 0), window=self.frameItensHistorico, anchor="nw")
+        self.canvasHistorico.configure(yscrollcommand=scrollbarHistorico.set)
+
+        self.canvasHistorico.pack(side="left", fill="both", expand=True)
+        scrollbarHistorico.pack(side="right", fill="y")
 
         # Filtro à direita
         frameFiltro = tk.Frame(frameConteudo, bg="#FFFFFF", width=200)
@@ -234,51 +255,84 @@ class MI:
         frameFiltro.pack_propagate(False)
 
         tk.Label(frameFiltro, text="Filtro", bg="#FFFFFF",
-                 font=("Arial", 13, "bold"), anchor="w").pack(fill="x")
+                font=("Arial", 13, "bold"), anchor="w").pack(fill="x")
         tk.Label(frameFiltro, text="Data de início", bg="#FFFFFF",
-                 font=("Arial", 10), anchor="w").pack(fill="x", pady=(10, 2))
+                font=("Arial", 10), anchor="w").pack(fill="x", pady=(10, 2))
+
         self.entradaDataInicio = tk.Entry(frameFiltro, font=("Arial", 10),
-                                          bg="#F0F0F0", relief="flat")
+                                        bg="#F0F0F0", relief="flat")
         self.entradaDataInicio.insert(0, "DD/MM/AAAA")
         self.entradaDataInicio.pack(fill="x", ipady=8)
 
         tk.Label(frameFiltro, text="Data de fim", bg="#FFFFFF",
-                 font=("Arial", 10), anchor="w").pack(fill="x", pady=(10, 2))
+                font=("Arial", 10), anchor="w").pack(fill="x", pady=(10, 2))
+
         self.entradaDataFim = tk.Entry(frameFiltro, font=("Arial", 10),
                                         bg="#F0F0F0", relief="flat")
         self.entradaDataFim.insert(0, "DD/MM/AAAA")
         self.entradaDataFim.pack(fill="x", ipady=8)
 
         tk.Button(frameFiltro, text="Filtrar", bg="#4AE54A",
-                  font=("Arial", 10, "bold"), relief="flat", cursor="hand2",
-                  command=lambda: self.atualizarHistorico(frameLista)).pack(pady=10, fill="x")
+                font=("Arial", 10, "bold"), relief="flat", cursor="hand2",
+                command=self.filtrarHistorico).pack(pady=10, fill="x")
 
-        # Carrega dados do ranking
-        self.atualizarHistorico(frameLista)
+        tk.Button(frameFiltro, text="Limpar filtro", bg="#F0F0F0",
+                font=("Arial", 10), relief="flat", cursor="hand2",
+                command=self.limparFiltroHistorico).pack(fill="x")
 
-    # Atualiza a lista de histórico com os dados do banco
-    def atualizarHistorico(self, frameLista):
-        for widget in frameLista.winfo_children():
-            if widget.cget("font") != "Arial 14 bold":
-                widget.destroy()
+        # Carrega dados padrão da semana
+        self.atualizarHistorico()
 
-        ranking = self.mc.mah.buscarRanking(diasAtras=7) if self.mc.mah else []
+    # Aplica o filtro de data no histórico
+    def filtrarHistorico(self):
+        dataInicio = self.entradaDataInicio.get()
+        dataFim = self.entradaDataFim.get()
+
+        # Valida o formato das datas
+        try:
+            dataInicioFormatada = datetime.strptime(dataInicio, "%d/%m/%Y").strftime("%Y-%m-%d")
+            dataFimFormatada = datetime.strptime(dataFim, "%d/%m/%Y").strftime("%Y-%m-%d")
+        except ValueError:
+            tk.Label(self.frameItensHistorico, text="Data inválida! Use o formato DD/MM/AAAA.",
+                    bg="#FFFFFF", font=("Arial", 10), fg="red").pack(pady=5)
+            return
+
+        ranking = self.mc.mah.buscarRankingPorPeriodo(dataInicioFormatada, dataFimFormatada)
+        self.atualizarHistorico(ranking)
+
+    # Limpa o filtro e volta pro padrão semanal
+    def limparFiltroHistorico(self):
+        self.entradaDataInicio.delete(0, tk.END)
+        self.entradaDataInicio.insert(0, "DD/MM/AAAA")
+        self.entradaDataFim.delete(0, tk.END)
+        self.entradaDataFim.insert(0, "DD/MM/AAAA")
+        self.atualizarHistorico()
+
+    # Atualiza a lista de histórico com os dados fornecidos ou busca padrão semanal
+    def atualizarHistorico(self, ranking=None):
+        # Limpa os itens da lista
+        for widget in self.frameItensHistorico.winfo_children():
+            widget.destroy()
+
+        if ranking is None:
+            ranking = self.mc.mah.buscarRanking(diasAtras=7) if self.mc.mah else []
+
         maxKwh = max(r[2] for r in ranking) if ranking else 1
 
         if not ranking:
-            tk.Label(frameLista, text="Nenhum dado encontrado.",
-                     bg="#FFFFFF", font=("Arial", 11), fg="#888888").pack(pady=20)
+            tk.Label(self.frameItensHistorico, text="Nenhum dado encontrado.",
+                    bg="#FFFFFF", font=("Arial", 11), fg="#888888").pack(pady=20)
             return
 
         for site, url, totalKwh in ranking:
-            frameSite = tk.Frame(frameLista, bg="#FFFFFF")
+            frameSite = tk.Frame(self.frameItensHistorico, bg="#FFFFFF")
             frameSite.pack(fill="x", pady=8)
 
             tk.Label(frameSite, text=site[:40], bg="#FFFFFF",
-                     font=("Arial", 11, "bold"), anchor="w").pack(fill="x")
+                    font=("Arial", 11, "bold"), anchor="w").pack(fill="x")
 
             proporcaoKwh = totalKwh / maxKwh if maxKwh > 0 else 0
-            largura = max(int(proporcaoKwh * 600), 30)
+            largura = max(int(proporcaoKwh * 550), 30)
 
             frameBarra = tk.Frame(frameSite, bg="#E0E0E0", height=22)
             frameBarra.pack(fill="x")
@@ -286,8 +340,8 @@ class MI:
 
             tk.Frame(frameBarra, bg="#4AE54A", width=largura, height=22).place(x=0, y=0)
             tk.Label(frameBarra, text=f"{totalKwh:.6f} kWh",
-                     bg="#4AE54A" if largura > 80 else "#E0E0E0",
-                     font=("Arial", 9, "bold")).place(x=5, y=2)
+                    bg="#4AE54A" if largura > 80 else "#E0E0E0",
+                    font=("Arial", 9, "bold")).place(x=5, y=2)
 
     # Inicia o loop principal da interface
     def iniciar(self):

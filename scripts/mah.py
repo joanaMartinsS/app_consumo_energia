@@ -78,6 +78,55 @@ class MAH:
         conexao.close()
         return ranking
 
+    # Salva o coeficiente de calibração no banco
+    def salvarCoeficiente(self, coeficiente):
+        conexao = sqlite3.connect(self.caminhoBanco)
+        cursor = conexao.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS configuracoes (
+                chave TEXT PRIMARY KEY,
+                valor TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
+            INSERT OR REPLACE INTO configuracoes (chave, valor)
+            VALUES ('coeficiente', ?)
+        """, (str(coeficiente),))
+        conexao.commit()
+        conexao.close()
+
+    # Busca o coeficiente de calibração salvo, retorna None se não existir
+    def buscarCoeficiente(self):
+        try:
+            conexao = sqlite3.connect(self.caminhoBanco)
+            cursor = conexao.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS configuracoes (
+                    chave TEXT PRIMARY KEY,
+                    valor TEXT NOT NULL
+                )
+            """)
+            cursor.execute("SELECT valor FROM configuracoes WHERE chave = 'coeficiente'")
+            resultado = cursor.fetchone()
+            conexao.close()
+            return float(resultado[0]) if resultado else None
+        except Exception:
+            return None
+
+    # Busca o ranking de consumo filtrado por data de início e fim
+    def buscarRankingPorPeriodo(self, dataInicio, dataFim):
+        conexao = sqlite3.connect(self.caminhoBanco)
+        cursor = conexao.cursor()
+        cursor.execute("""
+            SELECT site, url, SUM(kwh) as totalKwh
+            FROM historico
+            WHERE timestamp >= ? AND timestamp <= ?
+            GROUP BY url
+            ORDER BY totalKwh DESC
+        """, (dataInicio, dataFim + " 23:59:59"))
+        ranking = cursor.fetchall()
+        conexao.close()
+        return ranking
 
 if __name__ == "__main__":
     mah = MAH()

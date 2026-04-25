@@ -28,12 +28,14 @@ class MC:
         self.mah = MAH()
         print("Módulos inicializados!")
 
-    # Executa a calibração inicial e armazena o coeficiente
+    # Executa a calibração, salva o coeficiente e inicia a coleta
     def executarCalibracao(self):
         print("Executando calibração...")
         mcal = MCal(self.mwmi)
         self.coeficiente = mcal.calibrar()
         self.mee = MEE(self.coeficiente)
+        self.mah.salvarCoeficiente(self.coeficiente)
+        self.iniciarColeta()
         print(f"Calibração concluída! Coeficiente: {self.coeficiente} W/%CPU")
 
     # Executa um ciclo de coleta: pega dados das abas, estima e salva
@@ -78,26 +80,29 @@ class MC:
         self.pararColeta()
         print("Sistema encerrado!")
 
-    # Fluxo principal: inicializa, calibra e inicia a coleta contínua
+    # Fluxo principal: inicializa módulos, verifica calibração e abre interface
     def iniciar(self):
         self.inicializarModulos()
         self.mgc.abrirChromium()
-        # Abre uma aba inicial no Chromium
         self.mgc.abrirAba("https://www.google.com")
-        self.executarCalibracao()
-        self.iniciarColeta()
+        
+        # Verifica se já existe coeficiente salvo
+        coeficienteSalvo = self.mah.buscarCoeficiente()
+        if coeficienteSalvo:
+            print(f"Coeficiente encontrado: {coeficienteSalvo} W/%CPU")
+            self.coeficiente = coeficienteSalvo
+            self.mee = MEE(self.coeficiente)
+            self.iniciarColeta()
+        
+        self.iniciarInterface()
+
+    # Inicia a interface gráfica conectada ao controlador
+    def iniciarInterface(self):
+        from scripts.mi import MI
+        self.mi = MI(self)
+        self.mi.iniciar()
 
 
 if __name__ == "__main__":
     mc = MC()
     mc.iniciar()
-
-    print("\nSistema rodando! Pressione Enter para encerrar...")
-    input()
-
-    print("\nRanking da semana:")
-    ranking = mc.mah.buscarRanking()
-    for i, (site, url, totalKwh) in enumerate(ranking, 1):
-        print(f"  {i}. {site}: {totalKwh:.8f} kWh")
-
-    mc.encerrar()
