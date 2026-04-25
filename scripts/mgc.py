@@ -4,35 +4,44 @@ from playwright.sync_api import sync_playwright
 
 class MGC:
 
-    # Inicializa o módulo com as configurações do Chromium
+    # Inicializa o módulo com as configurações do navegador
     def __init__(self):
         self.portaDepuracao = 9222
         self.playwright = None
         self.navegador = None
         self.contexto = None
 
-    # Verifica se o Chromium já está rodando nos processos do sistema
-    def chromiumJaEstaRodando(self):
+    # Verifica se o Edge já está rodando nos processos do sistema
+    def navegadorJaEstaRodando(self):
         for processo in psutil.process_iter(['name']):
-            if 'chromium' in processo.info['name'].lower():
+            if 'msedge' in processo.info['name'].lower():
                 return True
         return False
 
-    # Abre o Chromium com a porta de depuração ativa para comunicação via CDP
-    def abrirChromium(self):
-        if self.chromiumJaEstaRodando():
-            print("Chromium já está rodando!")
-            return
+    # Abre o Microsoft Edge real com a porta de depuração ativa via Playwright
+    def abrirNavegador(self):
+        # Fecha qualquer instância do Edge que esteja rodando
+        for processo in psutil.process_iter(['name', 'pid']):
+            if 'msedge' in processo.info['name'].lower():
+                try:
+                    processo.kill()
+                except Exception:
+                    pass
+        time.sleep(2)
+
         self.playwright = sync_playwright().start()
         self.navegador = self.playwright.chromium.launch(
+            channel="msedge",
             headless=False,
             args=[
                 f"--remote-debugging-port={self.portaDepuracao}",
-                "--remote-allow-origins=*"
+                "--remote-allow-origins=*",
+                "--no-first-run",
+                "--no-default-browser-check"
             ]
         )
-        self.contexto = self.navegador.new_context()
-        print("Chromium aberto com sucesso!")
+        self.contexto = self.navegador.new_context(viewport=None)
+        print("Edge aberto com sucesso!")
 
     # Abre uma nova aba com a URL informada
     def abrirAba(self, url):
@@ -44,13 +53,13 @@ class MGC:
     def coletarDadosPorAba(self):
         dadosAbas = []
 
-        # Pega o % de CPU total do Chromium via psutil
+        # Pega o % de CPU total do Edge via psutil
         # Primeira chamada descartada pois o psutil precisa de intervalo para medir
         percentualCpuTotal = 0
-        processosChromiun = [p for p in psutil.process_iter(['name', 'cpu_percent']) 
-                            if p.info['name'].lower() == 'chrome.exe']
+        processosEdge = [p for p in psutil.process_iter(['name', 'cpu_percent'])
+                         if 'msedge' in p.info['name'].lower()]
         time.sleep(1)
-        for processo in processosChromiun:
+        for processo in processosEdge:
             percentualCpuTotal += processo.cpu_percent()
 
         # Coleta o tempo de uso de cada aba via CDP pra distribuir proporcionalmente
@@ -59,7 +68,6 @@ class MGC:
         for contexto in self.navegador.contexts:
             for pagina in contexto.pages:
                 try:
-                    # Coleta o tempo acumulado de CPU da aba via performance API
                     tempoCpu = pagina.evaluate("""
                         () => {
                             const entries = performance.getEntriesByType('navigation');
@@ -92,30 +100,11 @@ class MGC:
 
         return dadosAbas
 
-    # Encerra a conexão com o Chromium
+    # Encerra a conexão com o navegador
     def desconectar(self):
         try:
             if self.playwright:
                 self.playwright.stop()
-            print("Chromium encerrado!")
+            print("Navegador encerrado!")
         except Exception:
-            print("Chromium encerrado!")
-
-
-if __name__ == "__main__":
-    mgc = MGC()
-    mgc.abrirChromium()
-
-    mgc.abrirAba("https://www.google.com")
-    mgc.abrirAba("https://chatgpt.com")
-    mgc.abrirAba("https://www.youtube.com")
-
-    print("Chromium aberto! Pressione Enter para coletar dados...")
-    input()
-
-    print("\nDados por aba:")
-    dados = mgc.coletarDadosPorAba()
-    for dado in dados:
-        print(f"  - {dado['titulo']} → {dado['url']}: {dado['percentualCpu']}% CPU")
-
-    mgc.desconectar()
+            print("Navegador encerrado!")

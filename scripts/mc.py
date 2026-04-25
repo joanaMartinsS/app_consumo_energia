@@ -83,7 +83,7 @@ class MC:
     # Fluxo principal: inicializa módulos, verifica calibração e abre interface
     def iniciar(self):
         self.inicializarModulos()
-        self.mgc.abrirChromium()
+        self.mgc.abrirNavegador()
         self.mgc.abrirAba("https://www.google.com")
         
         # Verifica se já existe coeficiente salvo
