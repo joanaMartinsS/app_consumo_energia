@@ -3,15 +3,17 @@ import psutil
 import time
 import os
 import ctypes
+import subprocess
 
 class MWMI:
 
-    # Inicializa o módulo, abre o OHM se necessário e testa a conexão
+    # Inicializa o módulo, adiciona exceção no Defender, abre o OHM e testa a conexão
     def __init__(self):
         self.caminhoOhm = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "ferramentas", "openHardwareMonitor", "OpenHardwareMonitor.exe"
         )
+        self.adicionarExcecaoDefender()
         self.abrirOhm()
         time.sleep(3)
         self.conexaoWmi = wmi.WMI(namespace="root\\OpenHardwareMonitor")
@@ -23,6 +25,19 @@ class MWMI:
             if 'OpenHardwareMonitor' in processo.info['name']:
                 return True
         return False
+
+    # Adiciona a pasta do OHM nas exceções do Windows Defender via PowerShell
+    def adicionarExcecaoDefender(self):
+        pastaOhm = os.path.dirname(self.caminhoOhm)
+        try:
+            subprocess.run(
+                ["powershell", "-Command",
+                 f"Add-MpPreference -ExclusionPath '{pastaOhm}'"],
+                capture_output=True
+            )
+            print("Exceção do Windows Defender adicionada!")
+        except Exception as erro:
+            print(f"Erro ao adicionar exceção: {erro}")
 
     # Abre o OpenHardwareMonitor com privilégios de administrador apenas se não estiver rodando
     def abrirOhm(self):
@@ -81,28 +96,3 @@ class MWMI:
             "percentualCpu": percentualCpu,
             "watts": watts
         }
-
-    # Adiciona a pasta do OHM nas exceções do Windows Defender via PowerShell
-    def adicionarExcecaoDefender(self):
-        pastaOhm = os.path.dirname(self.caminhoOhm)
-        try:
-            subprocess.run(
-                ["powershell", "-Command", 
-                f"Add-MpPreference -ExclusionPath '{pastaOhm}'"],
-                capture_output=True
-            )
-            print("Exceção do Windows Defender adicionada!")
-        except Exception as erro:
-            print(f"Erro ao adicionar exceção: {erro}")
-            
-# Inicializa o módulo, abre o OHM com admin e testa a conexão
-def __init__(self):
-    self.caminhoOhm = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "ferramentas", "openHardwareMonitor", "OpenHardwareMonitor.exe"
-    )
-    self.adicionarExcecaoDefender()
-    self.abrirOhm()
-    time.sleep(3)
-    self.conexaoWmi = wmi.WMI(namespace="root\\OpenHardwareMonitor")
-    self.usarOhm = self.testarOhm()

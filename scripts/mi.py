@@ -126,15 +126,24 @@ class MI:
         tk.Label(frameHeader, text="Sites em uso agora", bg=CORES["fundo"],
                  fg=CORES["branco"], font=("Courier", 20, "bold"), anchor="w").pack(side="left")
 
-        tk.Button(frameHeader, text="↻ Atualizar", bg=CORES["verde"],
-                  fg=CORES["fundo"], font=("Courier", 9, "bold"),
-                  relief="flat", cursor="hand2", padx=12, pady=6,
-                  command=self.mostrarInicio).pack(side="right")
-
         tk.Label(self.areaPrincipal,
                  text="Estimativa de consumo energético por aba aberta no navegador",
                  bg=CORES["fundo"], fg=CORES["texto_secundario"],
                  font=("Courier", 9), anchor="w").pack(fill="x", padx=30, pady=(0, 20))
+        
+        # Botões de ação no cabeçalho
+        frameBotoes = tk.Frame(frameHeader, bg=CORES["fundo"])
+        frameBotoes.pack(side="right")
+
+        tk.Button(frameBotoes, text="⚡ Coletar agora", bg=CORES["verde"],
+                fg=CORES["fundo"], font=("Courier", 9, "bold"),
+                relief="flat", cursor="hand2", padx=12, pady=6,
+                command=self.coletarAgora).pack(side="left", padx=(0, 8))
+
+        tk.Button(frameBotoes, text="↻ Atualizar", bg=CORES["borda"],
+                fg=CORES["texto"], font=("Courier", 9),
+                relief="flat", cursor="hand2", padx=12, pady=6,
+                command=self.mostrarInicio).pack(side="left")
 
         # Linha separadora
         tk.Frame(self.areaPrincipal, bg=CORES["borda"], height=1).pack(fill="x", padx=30, pady=(0, 15))
@@ -276,6 +285,12 @@ class MI:
                   font=("Courier", 11, "bold"),
                   relief="flat", cursor="hand2", padx=20, pady=10,
                   command=lambda: [popup.destroy(), self.mostrarInicio()]).pack(pady=25)
+
+    # Dispara uma coleta imediata e atualiza a tela após 4 segundos
+    def coletarAgora(self):
+        self.mc.coletarAgora()
+        self.janela.after(4000, self.mostrarInicio)
+
 
     # Exibe a tela de histórico com ranking e filtro de datas
     def mostrarHistorico(self):

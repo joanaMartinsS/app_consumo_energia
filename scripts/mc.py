@@ -19,6 +19,7 @@ class MC:
         self.emExecucao = False
         self.threadColeta = None
         self.intervaloSegundos = 300
+        self.coletarAgoraEvento = threading.Event()
 
     # Inicializa todos os módulos do sistema
     def inicializarModulos(self):
@@ -53,7 +54,6 @@ class MC:
 
     # Loop de coleta contínua executado em segundo plano a cada 5 minutos
     def loopDeColeta(self):
-        # Playwright precisa ser iniciado na mesma thread que vai usá-lo
         with sync_playwright() as p:
             navegador = p.chromium.connect_over_cdp(
                 f"http://localhost:{self.mgc.portaDepuracao}"
@@ -61,7 +61,9 @@ class MC:
             self.mgc.navegador = navegador
             while self.emExecucao:
                 self.executarCicloDeColeta()
-                time.sleep(self.intervaloSegundos)
+                # Aguarda 5 minutos ou até receber sinal de coletar agora
+                self.coletarAgoraEvento.wait(timeout=self.intervaloSegundos)
+                self.coletarAgoraEvento.clear()
 
     # Inicia o loop de coleta em uma thread separada
     def iniciarColeta(self):
@@ -69,6 +71,10 @@ class MC:
         self.threadColeta = threading.Thread(target=self.loopDeColeta, daemon=True)
         self.threadColeta.start()
         print("Coleta em segundo plano iniciada!")
+    
+    # Executa um ciclo de coleta imediato fora do loop automático
+    def coletarAgora(self):
+        self.coletarAgoraEvento.set()
 
     # Para o loop de coleta
     def pararColeta(self):
@@ -84,8 +90,16 @@ class MC:
     def iniciar(self):
         self.inicializarModulos()
         self.mgc.abrirNavegador()
-        self.mgc.abrirAba("https://www.google.com")
         
+        # Abre abas de demonstração
+        self.mgc.abrirAba("https://www.google.com")
+        self.mgc.abrirAba("https://www.youtube.com")
+        self.mgc.abrirAba("https://chatgpt.com")
+        self.mgc.abrirAba("https://www.netflix.com")
+
+        # Aguarda o Edge carregar completamente antes de iniciar a coleta
+        time.sleep(8)
+
         # Verifica se já existe coeficiente salvo
         coeficienteSalvo = self.mah.buscarCoeficiente()
         if coeficienteSalvo:
@@ -93,7 +107,7 @@ class MC:
             self.coeficiente = coeficienteSalvo
             self.mee = MEE(self.coeficiente)
             self.iniciarColeta()
-        
+
         self.iniciarInterface()
 
     # Inicia a interface gráfica conectada ao controlador

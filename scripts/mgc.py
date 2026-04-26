@@ -68,6 +68,9 @@ class MGC:
         for contexto in self.navegador.contexts:
             for pagina in contexto.pages:
                 try:
+                    # Ignora abas que estão carregando
+                    if pagina.url == "about:blank":
+                        continue
                     tempoCpu = pagina.evaluate("""
                         () => {
                             const entries = performance.getEntriesByType('navigation');
@@ -83,8 +86,9 @@ class MGC:
                         "tempoCpu": tempoCpu
                     })
                     tempoTotal += tempoCpu
-                except Exception as erro:
-                    print(f"Erro ao coletar dados da aba {pagina.url}: {erro}")
+                except Exception:
+                    # Ignora abas em navegação ou com contexto destruído
+                    continue
 
         # Distribui o % de CPU total proporcionalmente entre as abas
         for pagina in paginasComTempo:
