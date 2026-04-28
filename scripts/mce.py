@@ -2,7 +2,7 @@ import time
 import psutil
 from playwright.sync_api import sync_playwright
 
-class MGC:
+class MCE:
 
     # Inicializa o módulo com as configurações do navegador
     def __init__(self):
@@ -49,11 +49,11 @@ class MGC:
         pagina.goto(url)
         return pagina
 
-    # Coleta o % de CPU de cada aba aberta via CDP
+    # Pega o % de CPU total do Edge via psutil
     def coletarDadosPorAba(self):
         dadosAbas = []
 
-        # Pega o % de CPU total do Edge via psutil
+        
         # Primeira chamada descartada pois o psutil precisa de intervalo para medir
         percentualCpuTotal = 0
         processosEdge = [p for p in psutil.process_iter(['name', 'cpu_percent'])
@@ -62,7 +62,7 @@ class MGC:
         for processo in processosEdge:
             percentualCpuTotal += processo.cpu_percent()
 
-        # Coleta o tempo de uso de cada aba via CDP pra distribuir proporcionalmente
+        # Coleta o tempo de uso de cada aba pra distribuir proporcionalmente
         paginasComTempo = []
         tempoTotal = 0
         for contexto in self.navegador.contexts:

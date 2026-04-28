@@ -1,8 +1,8 @@
 import time
 import threading
-from scripts.mwmi import MWMI
+from scripts.mcohm import MCOHM
 from scripts.mcal import MCal
-from scripts.mgc import MGC
+from scripts.mce import MCE
 from scripts.mee import MEE
 from scripts.mah import MAH
 from playwright.sync_api import sync_playwright
@@ -11,8 +11,8 @@ class MC:
 
     # Inicializa o controlador com todos os módulos e variáveis de estado
     def __init__(self):
-        self.mwmi = None
-        self.mgc = None
+        self.mcohm = None
+        self.mce = None
         self.mee = None
         self.mah = None
         self.coeficiente = None
@@ -24,8 +24,8 @@ class MC:
     # Inicializa todos os módulos do sistema
     def inicializarModulos(self):
         print("Inicializando módulos...")
-        self.mwmi = MWMI()
-        self.mgc = MGC()
+        self.mcohm = MCOHM()
+        self.mce = MCE()
         self.mah = MAH()
         print("Módulos inicializados!")
 
@@ -56,9 +56,9 @@ class MC:
     def loopDeColeta(self):
         with sync_playwright() as p:
             navegador = p.chromium.connect_over_cdp(
-                f"http://localhost:{self.mgc.portaDepuracao}"
+                f"http://localhost:{self.mce.portaDepuracao}"
             )
-            self.mgc.navegador = navegador
+            self.mce.navegador = navegador
             while self.emExecucao:
                 self.executarCicloDeColeta()
                 # Aguarda 5 minutos ou até receber sinal de coletar agora
@@ -89,13 +89,13 @@ class MC:
     # Fluxo principal: inicializa módulos, verifica calibração e abre interface
     def iniciar(self):
         self.inicializarModulos()
-        self.mgc.abrirNavegador()
+        self.mce.abrirNavegador()
         
         # Abre abas de demonstração
-        self.mgc.abrirAba("https://www.google.com")
-        self.mgc.abrirAba("https://www.youtube.com")
-        self.mgc.abrirAba("https://chatgpt.com")
-        self.mgc.abrirAba("https://www.netflix.com")
+        self.mce.abrirAba("https://www.google.com")
+        self.mce.abrirAba("https://www.youtube.com")
+        self.mce.abrirAba("https://chatgpt.com")
+        self.mce.abrirAba("https://www.netflix.com")
 
         # Aguarda o Edge carregar completamente antes de iniciar a coleta
         time.sleep(8)

@@ -5,7 +5,7 @@ import os
 import ctypes
 import subprocess
 
-class MWMI:
+class MCOHM:
 
     # Inicializa o módulo, adiciona exceção no Defender, abre o OHM e testa a conexão
     def __init__(self):

@@ -1,13 +1,13 @@
 import psutil
 import time
 import threading
-from scripts.mwmi import MWMI
+from scripts.mcohm import MCOHM
 
 class MCal:
 
-    # Inicializa o módulo de calibração com o MWMI e as variáveis de resultado
-    def __init__(self, mwmi):
-        self.mwmi = mwmi
+    # Inicializa o módulo de calibração com o MCOHM e as variáveis de resultado
+    def __init__(self, mcohm):
+        self.mcohm = self.mcohm
         self.coeficiente = None
         self.duracaoCalibracaoSegundos = 20
 
@@ -59,6 +59,6 @@ class MCal:
 
 
 if __name__ == "__main__":
-    mwmi = MWMI()
-    cal = MCal(mwmi)
+    mcohm = MCOHM()
+    cal = MCal(mcohm)
     cal.calibrar()
