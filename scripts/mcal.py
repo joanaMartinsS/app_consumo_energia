@@ -7,7 +7,7 @@ class MCal:
 
     # Inicializa o módulo de calibração com o MCOHM e as variáveis de resultado
     def __init__(self, mcohm):
-        self.mcohm = self.mcohm
+        self.mcohm = mcohm
         self.coeficiente = None
         self.duracaoCalibracaoSegundos = 20
 
@@ -24,7 +24,7 @@ class MCal:
         amostras = []
         tempoFinal = time.time() + duracaoSegundos
         while time.time() < tempoFinal:
-            amostra = self.mwmi.coletarAmostra()
+            amostra = self.mcohm.coletarAmostra()
             amostras.append(amostra)
             time.sleep(1)
         return amostras

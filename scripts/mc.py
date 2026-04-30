@@ -32,7 +32,7 @@ class MC:
     # Executa a calibração, salva o coeficiente e inicia a coleta
     def executarCalibracao(self):
         print("Executando calibração...")
-        mcal = MCal(self.mwmi)
+        mcal = MCal(self.mcohm)
         self.coeficiente = mcal.calibrar()
         self.mee = MEE(self.coeficiente)
         self.mah.salvarCoeficiente(self.coeficiente)
@@ -42,7 +42,7 @@ class MC:
     # Executa um ciclo de coleta: pega dados das abas, estima e salva
     def executarCicloDeColeta(self):
         try:
-            dadosAbas = self.mgc.coletarDadosPorAba()
+            dadosAbas = self.mce.coletarDadosPorAba()
             if not dadosAbas:
                 print("Nenhuma aba encontrada!")
                 return
